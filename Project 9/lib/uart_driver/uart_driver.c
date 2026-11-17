@@ -45,8 +45,36 @@ void serial_printf(char *string, ...) {
                     break;
                 }
                 case '.': { // Float (promoted to double in va_arg)
+                    int places = 0;
+                    int i = 1;
                     double f = va_arg(args, double);
-                    printf("%.f", f);
+                    for (;; i++){
+                        if (*(p + i) >= '0' && *(p + i) <= '9') {
+                            places = (places * 10) + (*(p + i) - '0');
+                        }
+                        else if (*(p+i) == 'f') {
+                            char float_str[64] = {0};
+
+                            snprintf(float_str, sizeof(float_str), "%.*f", places, f);
+                            for (int j = 0; float_str[j] != '\0' && j < 64; j++ ) {
+                                uart3_send_char(float_str[j]);
+                            }
+                        }
+                        else {
+                                // print everything between
+                        }
+                            p = p + i;
+                            break;
+                    }
+                    break;
+                }
+                case 'f': {// Float (promoted to double in va_arg)
+                    char float_str[64] = {0};
+                    double f = va_arg(args, double);
+                    snprintf(float_str, sizeof(float_str), "%f", f);
+                    for (int j = 0; float_str[j] != '\0' && j < 64; j++ ) {
+                        uart3_send_char(float_str[j]);
+                    }
                     break;
                 }
                 default:

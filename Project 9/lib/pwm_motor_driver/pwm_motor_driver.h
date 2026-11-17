@@ -14,6 +14,10 @@
 #define PWM_MOTOR_DRIVER
     #include "stm32f446xx.h"
     #include "cpeg222_driver.h"
+    #ifndef uint
+    #define uint unsigned int
+    #endif
+
     // Pin Settings
         #define Left_Servo_Pin          PWM1
         #define Right_Servo_Pin         PWM3
@@ -23,17 +27,18 @@
         #define Right_Feed_Back_Pin     FB_3
         #define Left_Feed_Back_GPIO     FB_1_GPIO
         #define Right_Feed_Back_GPIO    FB_3_GPIO
-
     // Servo Settings
         #define IDLE_PULSE_US   1500    // stop pulse (inside the 1480 to 1520 us dead band)
-        #define SERVO_PULSE_US  1600    // 1500 stops, above 1520 turns one way, below 1480 the other
 
         #define DUTY_MIN        29      // 2.9 percent in tenths of a percent = 0 degrees
         #define DUTY_MAX        971     // 97.1 percent in tenths of a percent = 360 degrees
         #define RPM_WINDOW_MS   100     // time between angle readings
-
     // pwm_motor_driver.c funciton headers
-
+        void update_speed(int mode, int desired_rpm);
+        void update_rpm_measurements(bool is_right);
+        uint get_last_angle(bool is_right);
+        uint get_current_pwm(bool is_right);
+        uint get_current_rpm(bool is_right);
     // inline funcitons
     static inline void ENABLE_MOTORS() {
         // Enable Pin and Timer Clocks
@@ -76,7 +81,7 @@
             // 1. clocks
             RCC->AHB1ENR |= RCC_AHB1ENR_GPIOEEN;
             RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
-            // 2. pe9 to alternate function, af1 = tim1
+            // 2. pe9 and pe13 to alternate function, af1 = tim1
             Left_Feed_Back_GPIO->MODER &= ~(0x3 << (Left_Feed_Back_Pin * 2));
             Left_Feed_Back_GPIO->MODER |=  (0x2 << (Left_Feed_Back_Pin * 2));
             #if (Left_Feed_Back_Pin > 7)
