@@ -128,6 +128,19 @@ void OLED_Clear_Page(int page) {// Clear the display by writing zeros to all pag
       OLED_Chip_Unselect();// Unselect the OLED (CS high)
 }
 
+bool Oled_helper_for_int(uint8_t page, uint8_t *col, int i) {
+    char int_str[12] = {'\0'};
+    snprintf(int_str, sizeof(char[12]), "%d", i);
+    for (int j = 0; int_str[j] != '\0'; j++){
+        OLED_PutChar(page, *col, int_str[j]);
+        *col = (uint8_t)(*col + 6U);// Move the column position for the next character
+        if (*col > 122U) {// Stop if the column exceeds the display width
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void OLED_Print(uint8_t page, uint8_t col,  char *s, ...) {// Print a string to the display starting at the specified page and column
     va_list args;
     va_start(args, s);
@@ -140,14 +153,8 @@ void OLED_Print(uint8_t page, uint8_t col,  char *s, ...) {// Print a string to 
             switch (*p) {
                 case 'd': { // Integer
                     int i = va_arg(args, int);
-                    char int_str[12] = "";
-                    snprintf(int_str, sizeof(int_str), "%d", i);
-                    for (char *int_ptr = int_str; *int_ptr != '\0'; int_ptr++){
-                        OLED_PutChar(page, col, *int_ptr);
-                        col = (uint8_t)(col + 6U);// Move the column position for the next character
-                        if (col > 122U) {// Stop if the column exceeds the display width
-                            goto end_of_column;
-                        }
+                    if (Oled_helper_for_int(page, &col, i)) {
+                        goto end_of_column;
                     }
                     break;
                 }
@@ -208,9 +215,6 @@ void OLED_Print(uint8_t page, uint8_t col,  char *s, ...) {// Print a string to 
                     putchar(*p);
             }
         }
-        else if (*p == '\0') {
-            break;
-        }
         else {
             OLED_PutChar(page, col,*p);
             col = (uint8_t)(col + 6U);// Move the column position for the next character
@@ -218,6 +222,11 @@ void OLED_Print(uint8_t page, uint8_t col,  char *s, ...) {// Print a string to 
                 break;
             }
         }
+        
+    }
+    while(col <= 122){
+        OLED_PutChar(page,col,' ');
+        col = (uint8_t)(col + 6U);// Move the column position for the next character
     }
     end_of_column:;
 }

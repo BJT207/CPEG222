@@ -52,6 +52,7 @@
         volatile uint8_t mode = 0;
         volatile uint time_count = 0;
         volatile uint8_t rpm_setting = 0;
+        volatile uint tickcount = 0;
     // Chars
     
     // uints
@@ -107,11 +108,11 @@ void EXTI9_5_IRQHandler(void) {
 
 void TIM1_CC_IRQHandler(void) {
     if (TIM1->SR & TIM_SR_CC1IF) {      // an edge (rising OR falling) was captured on CH1
-        update_rpm_measurements(false);
+        update_angle_measurements(0);
         TIM1->SR = ~TIM_SR_CC1IF;
     }
     if (TIM1->SR & TIM_SR_CC3IF) {
-        update_rpm_measurements(true);
+        update_angle_measurements(1);
         TIM1->SR = ~TIM_SR_CC3IF;
     }
 }
@@ -131,6 +132,7 @@ void SysTick_Handler(void) {
     else if (!update_flag) {
         time_count++;
     };
+    tickcount++;
 }
 
 // Functions
@@ -138,8 +140,8 @@ void SysTick_Handler(void) {
 void update_displays() {
     OLED_Print(0,0,"CPEG222 F26 Project 9");
     OLED_Print(1,0,"Brandon Trainor");
-    OLED_Print(2,0, "L PWM %d RPM %d", get_current_pwm(0), get_current_rpm(0));
-    OLED_Print(3,0, "R PWM %d RPM %d", get_current_pwm(1), get_current_rpm(1));
+    OLED_Print(2,0, "L RPM %d PWM %d", get_current_rpm(0), (int)(get_current_pwm(0)));
+    OLED_Print(3,0, "R RPM %d PWM %d", get_current_rpm(1), (int)(get_current_pwm(1)));
 }
 
 
@@ -152,19 +154,29 @@ int main() {
         uint32_t pot_val = 0;
         read_Hat_POT(&pot_val);
         if (update_flag) {
-            rpm_setting = (uint8_t)((((float)(pot_val) / 4095.0f)) * 140);
-            serial_printf("POT Val: %d\n", pot_val);
+            uint8_t potential_rpm = (uint8_t)((((float)(pot_val) / 4095.0f)) * 140);
+            if (potential_rpm != rpm_setting && mode){
+                rpm_setting = potential_rpm;
+                set_target_rpm(mode, rpm_setting);
+                ssd_value = rpm_setting;
+            }
+            else if (!mode){
+                rpm_setting = 0;
+                ssd_value = 0;
+                set_target_rpm(0, 0);
+            }
+            motor_speed_sync(tickcount);
+            tickcount = 0;
+            serial_printf("\n");
             serial_printf("RPM Val: %d\n", rpm_setting);
             serial_printf("Mode Val: %d\n", mode);
             serial_printf("Last Angle L: %f\n", (float)(get_last_angle(0)* 0.1f));
             serial_printf("Last Angle R: %f\n", (float)(get_last_angle(1)* 0.1f));
-            update_speed(mode, rpm_setting);
-            ssd_value = rpm_setting;
+            serial_printf("RPM L: %d\n", get_current_rpm(0));
+            serial_printf("RPM R: %d\n", get_current_rpm(1));
             update_displays();
             update_flag = false;
         }
-        // serial_printf("L_Caps:%d R_Caps:%d L_Angle:%d R_Angle:%d\n", 
-        //       captures[0], captures[1], angle[0], angle[1]);
     }
         
 }

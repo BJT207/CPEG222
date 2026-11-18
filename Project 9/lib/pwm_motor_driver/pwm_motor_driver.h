@@ -34,11 +34,15 @@
         #define DUTY_MAX        971     // 97.1 percent in tenths of a percent = 360 degrees
         #define RPM_WINDOW_MS   100     // time between angle readings
     // pwm_motor_driver.c funciton headers
-        void update_speed(int mode, int desired_rpm);
-        void update_rpm_measurements(bool is_right);
-        uint get_last_angle(bool is_right);
-        uint get_current_pwm(bool is_right);
-        uint get_current_rpm(bool is_right);
+        void set_target_rpm(int mode, int desired_rpm);
+        void update_angle_measurements(bool is_right);
+        void update_rpm_measurements(uint delta_time_ms);
+        void update_pwm();
+        void motor_speed_sync(uint time_delta_ms);
+
+        uint16_t get_last_angle(bool is_right);
+        uint16_t get_current_pwm(bool is_right);
+        int16_t get_current_rpm(bool is_right);
     // inline funcitons
     static inline void ENABLE_MOTORS() {
         // Enable Pin and Timer Clocks
