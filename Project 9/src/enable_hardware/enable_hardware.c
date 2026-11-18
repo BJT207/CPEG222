@@ -48,7 +48,7 @@ void Enable_Hardware() {
             #if DebugMode
                 serial_printf("Enabled Buttons\n");
             #endif
-            ENABLE_SHIELD_BUTTON_INTERUPTS(2);
+            ENABLE_SHIELD_BUTTON_INTERUPTS(8);
             #if DebugMode
                 serial_printf("Enabled Button Interupts\n");
             #endif

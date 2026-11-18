@@ -49,7 +49,7 @@
         bool flashflip = false;
         
     // Ints
-        volatile uint8_t mode = 0;
+        volatile unsigned int mode = 0;
         volatile uint time_count = 0;
         volatile uint8_t rpm_setting = 0;
         volatile uint tickcount = 0;
@@ -68,25 +68,25 @@ void EXTI9_5_IRQHandler(void) {
         mode = 0;
         EXTI->PR |= (1 << BTN_CENTER_H); // Clear Interupt bit
     }
-    if(EXTI->PR & (1 << BTN_LEFT_H)) {
-        if (mode == 0 || mode == 3) {
+    else if(EXTI->PR & (1 << BTN_LEFT_H)) {
+        if (mode == 0) {
             mode = 3;
         }
-        else {
+        else if (mode != 3) {
             mode = 0;
         }
         EXTI->PR |= (1 << BTN_LEFT_H); // Clear Interupt bit
     }
-    if(EXTI->PR & (1 << BTN_RIGHT_H)) {
-        if (mode == 0 || mode == 4) {
+    else if(EXTI->PR & (1 << BTN_RIGHT_H)) {
+        if (mode == 0) {
             mode = 4;
         }
-        else {
+        else  if (mode != 4){
             mode = 0;
         }
         EXTI->PR |= (1 << BTN_RIGHT_H); // Clear Interupt bit
     }
-    if(EXTI->PR & (1 << BTN_UP_H)) {
+    else if(EXTI->PR & (1 << BTN_UP_H)) {
         if (mode == 0 || mode == 1) {
             mode = 1;
         }
@@ -95,7 +95,7 @@ void EXTI9_5_IRQHandler(void) {
         }
         EXTI->PR |= (1 << BTN_UP_H); // Clear Interupt bit
     }
-    if(EXTI->PR & (1 << BTN_DOWN_H)) {
+    else if(EXTI->PR & (1 << BTN_DOWN_H)) {
         if (mode == 0 || mode == 2) {
             mode = 2;
         }
@@ -108,11 +108,11 @@ void EXTI9_5_IRQHandler(void) {
 
 void TIM1_CC_IRQHandler(void) {
     if (TIM1->SR & TIM_SR_CC1IF) {      // an edge (rising OR falling) was captured on CH1
-        update_angle_measurements(0);
+        update_angle_measurements(1);
         TIM1->SR = ~TIM_SR_CC1IF;
     }
     if (TIM1->SR & TIM_SR_CC3IF) {
-        update_angle_measurements(1);
+        update_angle_measurements(0);
         TIM1->SR = ~TIM_SR_CC3IF;
     }
 }
@@ -167,13 +167,13 @@ int main() {
             }
             motor_speed_sync(tickcount);
             tickcount = 0;
-            serial_printf("\n");
-            serial_printf("RPM Val: %d\n", rpm_setting);
-            serial_printf("Mode Val: %d\n", mode);
-            serial_printf("Last Angle L: %f\n", (float)(get_last_angle(0)* 0.1f));
-            serial_printf("Last Angle R: %f\n", (float)(get_last_angle(1)* 0.1f));
-            serial_printf("RPM L: %d\n", get_current_rpm(0));
-            serial_printf("RPM R: %d\n", get_current_rpm(1));
+            // serial_printf("\n");
+            // serial_printf("RPM Val: %d\n", rpm_setting);
+            // serial_printf("Mode Val: %d\n", mode);
+            // serial_printf("Last Angle L: %f\n", (float)(get_last_angle(0)* 0.1f));
+            // serial_printf("Last Angle R: %f\n", (float)(get_last_angle(1)* 0.1f));
+            // serial_printf("RPM L: %d\n", get_current_rpm(0));
+            // serial_printf("RPM R: %d\n", get_current_rpm(1));
             update_displays();
             update_flag = false;
         }

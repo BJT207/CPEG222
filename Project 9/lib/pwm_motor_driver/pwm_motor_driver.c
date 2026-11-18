@@ -2,7 +2,7 @@
  * Name: PWM Motor Driver Header
  * Author: Brandon Trainor
  * Email: bjtrainor2007@gmail.com
- * Last Modified: 11/12/2026 (mm/dd/yyyy)
+ * Last Modified: 11/17/2026 (mm/dd/yyyy)
  * Creation Date: 11/12/2026 (mm/dd/yyyy)
  * Board: STM32 Nucleo F446ZE
  * Hardware Interface: CMSIS
@@ -38,12 +38,12 @@
 // Exposed Functions
     void update_rpm_measurements(uint delta_time_ms) {
         int16_t delta_angle[2] = {calc_ang_delta(0), calc_ang_delta(1)};
-        serial_printf("Angle Delta L %d\n", delta_angle[0]);
-        serial_printf("Angle Delta R %d \n", delta_angle[1]);
+        // serial_printf("Angle Delta L %d\n", delta_angle[0]);
+        // serial_printf("Angle Delta R %d \n", delta_angle[1]);
         current_rpm[0] = ((double)(delta_angle[0] * (60000)) / (3600.0f * delta_time_ms));
         current_rpm[1] = ((double)(delta_angle[1] * (60000)) / (3600.0f * delta_time_ms));
-        serial_printf("RPM_READING %d\n",current_rpm[0]);
-        serial_printf("RPM_READING %d\n",current_rpm[1]);
+        // serial_printf("RPM_READING %d\n",current_rpm[0]);
+        // serial_printf("RPM_READING %d\n",current_rpm[1]);
     }
 
     void set_target_rpm(int mode, int desired_rpm) {
@@ -83,7 +83,7 @@
 
 // Internal Functions
     int16_t calc_ang_delta(bool is_right) {
-        int16_t delta_angle = current_angle[is_right] - last_angle[is_right];
+        int16_t delta_angle =  last_angle[is_right] - current_angle[is_right];
         if (delta_angle > 1800) {
             delta_angle -= 3600; // Wrapped backwards across 0
         } else if (delta_angle < -1800) {
@@ -98,26 +98,32 @@
         if (target_rpm[is_right] == 0) { return;}
         
         int16_t adjusted_pwm = current_pwm[is_right];
-        if ((int)(target_rpm[is_right]) > (int)(current_rpm[is_right])) {
-            adjusted_pwm += 1;
-        }
-        else {
-            adjusted_pwm -= 1;
-        }
+            if ((int)(target_rpm[is_right]) > (int)(current_rpm[is_right])) {
+                adjusted_pwm += 2;
+            }
+            else {
+                adjusted_pwm -= 2;
+            }
+        serial_printf("\n");
+        serial_printf("TGT RPM: %d\n", target_rpm[is_right]);
+        serial_printf("CRT RPM: %d\n", current_rpm[is_right]);
+        serial_printf("CRT PWM: %d\n", current_pwm[is_right]);
+        serial_printf("Inc or Dec: %d\n", (int)(target_rpm[is_right]) > (int)(current_rpm[is_right]));
+
         if (target_rpm[is_right] > 0) {
             if (adjusted_pwm > 1720) {
                 current_pwm[is_right] = 1720;
             }
-            else if (adjusted_pwm < 1520) {
-                current_pwm[is_right] = 1520;
+            else if (adjusted_pwm < 1500) {
+                current_pwm[is_right] = 1500;
             }
             else{
                 current_pwm[is_right] = adjusted_pwm;
             }
         }
         else {
-            if (adjusted_pwm > 1480) {
-                current_pwm[is_right] = 1480;
+            if (adjusted_pwm > 1500) {
+                current_pwm[is_right] = 1500;
             }
             else if (adjusted_pwm < 1280) {
                 current_pwm[is_right] = 1280;
@@ -171,17 +177,17 @@
                 is_rising = true;
         }
         if (is_rising) {
-            uint16_t rising_edge = (is_right ? TIM1->CCR3: TIM1->CCR1);       
+            uint16_t rising_edge = (is_right ? TIM1->CCR1: TIM1->CCR3);       
             uint16_t high_time = last_falling_edge[is_right] - last_rising_edge[is_right];
             uint16_t cycle_time = rising_edge - last_rising_edge[is_right];
-            if (cycle_time > 1000) {
+            if (cycle_time > 1075) {
                 uint duty_cycle = high_time*1000 /cycle_time;
                 current_angle[is_right] = (duty_cycle-29) *3600 /942;            
             }
             last_rising_edge[is_right] = rising_edge;
         }
         else {
-            last_falling_edge[is_right] = (is_right ? TIM1->CCR3: TIM1->CCR1);
+            last_falling_edge[is_right] = (is_right ? TIM1->CCR1: TIM1->CCR3);
         }
     }
 
