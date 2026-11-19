@@ -59,7 +59,9 @@
         volatile uint16_t ssd_value;
                  uint8_t  displayed_neopixel_color=4;
     // floats 
-        
+    
+    // Structs
+        motor_values_strct *motor_values = NULL;
 // Constants
 // Handlers
 
@@ -107,11 +109,38 @@ void EXTI9_5_IRQHandler(void) {
 }
 
 void TIM1_CC_IRQHandler(void) {
+    bool right = false;
+    uint32_t right_time;
+    bool edge_right;
+    bool skipped_right = false;
+    bool left = false;
+    uint32_t left_time;
+    bool edge_left;
+    bool skipped_left = false;
+    if (TIM1->SR & TIM_SR_CC1OF ) {
+        TIM1->SR &= ~TIM_SR_CC1OF;
+        skipped_right = true;
+    }
+    if (TIM1->SR & TIM_SR_CC3OF ) {
+        TIM1->SR &= ~TIM_SR_CC3OF;
+        skipped_left = true;
+    }
     if (TIM1->SR & TIM_SR_CC1IF) {      // an edge (rising OR falling) was captured on CH1
-        update_angle_measurements(1, (bool)(Right_Feed_Back_GPIO->IDR & (0b1 << Right_Feed_Back_Pin)), TIM1->CCR1);
+        right = true;
+        right_time = TIM1->CCR1;
+        edge_right = (bool)(Right_Feed_Back_GPIO->IDR & (0b1 << Right_Feed_Back_Pin));
     }
     if (TIM1->SR & TIM_SR_CC3IF) {
-        update_angle_measurements(0, (bool)(Left_Feed_Back_GPIO->IDR & (0b1 << Left_Feed_Back_Pin)), TIM1->CCR3);
+        left = true;
+        left_time = TIM1->CCR3;
+        edge_left = (bool)(Left_Feed_Back_GPIO->IDR & (0b1 << Left_Feed_Back_Pin));
+    }
+    if (right == true) {
+        update_angle_measurements(1, edge_right, right_time, skipped_right);
+    }
+    if (left == true) {
+        update_angle_measurements(0, edge_left, left_time, skipped_left);
+
     }
 }
 
@@ -138,8 +167,8 @@ void SysTick_Handler(void) {
 void update_displays() {
     OLED_Print(0,0,"CPEG222 F26 Project 9");
     OLED_Print(1,0,"Brandon Trainor");
-    OLED_Print(2,0, "L RPM %d PWM %d", get_current_rpm(0), (int)(get_current_pwm(0)));
-    OLED_Print(3,0, "R RPM %d PWM %d", get_current_rpm(1), (int)(get_current_pwm(1)));
+    OLED_Print(2,0, "L Angle %d", *(motor_values->left_angle));
+    OLED_Print(3,0, "R Angle %d", *(motor_values->right_angle));
 }
 
 
@@ -147,7 +176,7 @@ void update_displays() {
 int main() {
 
     Enable_Hardware();
-
+    motor_values = get_motor_ponters();
     while(1) {
         uint32_t pot_val = 0;
         read_Hat_POT(&pot_val);
@@ -163,18 +192,12 @@ int main() {
                 ssd_value = 0;
                 set_target_rpm(0, 0);
             }
-            motor_speed_sync(tickcount);
-            tickcount = 0;
-            // serial_printf("\n");
-            // serial_printf("RPM Val: %d\n", rpm_setting);
-            // serial_printf("Mode Val: %d\n", mode);
-            // serial_printf("Last Angle L: %f\n", (float)(get_last_angle(0)* 0.1f));
-            // serial_printf("Last Angle R: %f\n", (float)(get_last_angle(1)* 0.1f));
-            // serial_printf("RPM L: %d\n", get_current_rpm(0));
-            // serial_printf("RPM R: %d\n", get_current_rpm(1));
             update_displays();
             update_flag = false;
+            // serial_printf("Left Angle %d\n", *(motor_values->left_angle));
+            // serial_printf("Right Angle %d\n", *(motor_values->right_angle));
         }
+        
     }
         
 }

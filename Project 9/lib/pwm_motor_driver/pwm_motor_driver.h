@@ -18,6 +18,16 @@
     #define uint unsigned int
     #endif
 
+    typedef struct 
+    {
+        volatile uint16_t *right_angle;
+        volatile uint16_t *left_angle;
+        volatile int16_t  *current_rpm_left;
+        volatile int16_t  *current_rpm_right;
+        volatile uint16_t *current_pwm_left;
+        volatile uint16_t *current_pwm_right;
+    }motor_values_strct;
+    
     // Pin Settings
         #define Left_Servo_Pin          PWM1
         #define Right_Servo_Pin         PWM3
@@ -35,14 +45,12 @@
         #define RPM_WINDOW_MS   100     // time between angle readings
     // pwm_motor_driver.c funciton headers
         void set_target_rpm(int mode, int desired_rpm);
-        void update_angle_measurements(bool is_right, bool is_rising, uint16_t edge_time);
+        void update_angle_measurements(bool is_right, bool is_rising, uint16_t edge_time, bool reset_has_rise);
         void update_rpm_measurements(uint delta_time_ms);
         void update_pwm();
         void motor_speed_sync(uint time_delta_ms);
 
-        uint16_t get_last_angle(bool is_right);
-        uint16_t get_current_pwm(bool is_right);
-        int16_t get_current_rpm(bool is_right);
+        motor_values_strct * get_motor_ponters();
     // inline funcitons
     static inline void ENABLE_MOTORS() {
         // Enable Pin and Timer Clocks
@@ -107,7 +115,7 @@
             // 3. free running timer
             TIM1->PSC = 179;                            // 180 MHz / 180 = 1 us per tick
             TIM1->ARR = 0xFFFF;                         // wraps every 65.5 ms
-            // 4. ch1 captures both edges of pe9 (one channel per pin)
+            // 4. ch1 captures both edges of pe9 and pe13 (one channel per pin)
             TIM1->CCMR1 &= ~(TIM_CCMR1_CC1S);
             TIM1->CCMR1 |= TIM_CCMR1_CC1S_0;            // cc1s = 01, ch1 input is ti1
             TIM1->CCMR2 &= ~(TIM_CCMR2_CC3S);
@@ -117,7 +125,10 @@
             TIM1->CCER |= TIM_CCER_CC1E | TIM_CCER_CC3E;                // enable capture
             // 5. interrupt on every captured edge
             TIM1->DIER |= TIM_DIER_CC1IE | TIM_DIER_CC3IE;
-            NVIC_SetPriority(TIM1_CC_IRQn, 4);
+            // Configure CH1 and CH3 input filter (bits 4:7 in CCMR1 and CCMR2)
+            TIM1->CCMR1 |= (0x3 << 4); // IC1F = 0011 (filter of 8 events)
+            TIM1->CCMR2 |= (0x3 << 4); // IC3F = 0011 (filter of 8 events)
+            NVIC_SetPriority(TIM1_CC_IRQn, 1);
             NVIC_EnableIRQ(TIM1_CC_IRQn);
             // 6. go
             TIM1->EGR = TIM_EGR_UG;

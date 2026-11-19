@@ -18,15 +18,22 @@
 #define MAX_ADJUSTMENT 20
 
 // Vars
-    volatile uint16_t current_pwm[2] = {0};
-    volatile uint16_t current_angle[2] = {0};
-    volatile uint16_t last_angle[2] = {0};
+    // User Setting Vars
+        volatile int16_t target_rpm[2] = {0};
+    // Measured Angle
+        volatile bool has_rise[2] = {false};
+        volatile uint16_t current_angle[2] = {0};
+        volatile uint16_t last_angle[2] = {0};
+    // Angle Calculation
+        volatile uint16_t prior_rising_edge[2] = {0};
+        volatile uint16_t cycle_duration[2] = {0};
+    // RPM Calculation
+        volatile int16_t current_rpm[2] = {0};
+    // PWM 
+        volatile uint16_t current_pwm[2] = {0};
 
-    volatile int16_t target_rpm[2] = {0};
-    volatile int16_t current_rpm[2] = {0};
-
-    volatile uint16_t prior_rising_edge[2] = {0};
-    volatile uint16_t last_falling_edge[2] = {0};
+    
+    
     
 // Headers
     void motor_pwm_calcs(bool is_right);
@@ -161,37 +168,43 @@
             }
     }
 
-    void update_angle_measurements(bool is_right, bool is_rising, uint16_t edge_time) {
+    void update_angle_measurements(bool is_right, bool is_rising, uint16_t edge_time, bool reset_has_rise) {
+        if (reset_has_rise) {
+            has_rise[is_right] = 0;
+        }
         if (is_rising) {
-                   
-            uint16_t high_time = last_falling_edge[is_right] - prior_rising_edge[is_right];
-            uint16_t cycle_time = edge_time - prior_rising_edge[is_right];
-            if (cycle_time >= 1000 && cycle_time < 1200) {
-                uint duty_cycle = ((int32_t)high_time*1000) /cycle_time;
+            if (has_rise[is_right]) {
+                cycle_duration[is_right] = edge_time - prior_rising_edge[is_right];
+            }
+            else {
+                has_rise[is_right] = true;
+            }
+            prior_rising_edge[is_right] = edge_time;
+        }
+        else if (has_rise[is_right]) {
+            uint16_t high_time = edge_time - prior_rising_edge[is_right];
+            
+            if ((cycle_duration[is_right] > 1000) && (cycle_duration[is_right] < 1200)) {
+                uint duty_cycle = ((int32_t)high_time*1000) / cycle_duration[is_right];
                 if (duty_cycle < DUTY_MIN) {
                     duty_cycle = DUTY_MIN;
                 }
                 else if (duty_cycle > DUTY_MAX) {
                     duty_cycle = DUTY_MAX;
                 }
-                current_angle[is_right] = (duty_cycle-DUTY_MIN) *3599 / (DUTY_MAX-DUTY_MIN);            
+                current_angle[is_right] = (uint16_t)(duty_cycle-DUTY_MIN) *3599 / (DUTY_MAX - DUTY_MIN);            
             }
-            prior_rising_edge[is_right] = edge_time;
-        }
-        else {
-            last_falling_edge[is_right] = (is_right ? TIM1->CCR1: TIM1->CCR3);
         }
     }
 
 // Value Fetch Functions
-    // TODO: REMOVE AND REPLACE WITH A SINGLE FUNCTION THAT RETURNS THE POINTERS IN A GLOBAL VAR
-    uint16_t get_current_pwm(bool is_right) {
-        return current_pwm[is_right];
+    motor_values_strct * get_motor_ponters() {
+        motor_values_strct *motor_values = (motor_values_strct*)malloc(sizeof(motor_values_strct));
+        motor_values->left_angle = &current_angle[0];
+        motor_values->right_angle = &current_angle[1];
+        motor_values->current_rpm_left = &current_rpm[0];
+        motor_values->current_rpm_right = &current_rpm[1];
+        motor_values->current_pwm_left = &current_pwm[0];
+        motor_values->current_pwm_right = &current_pwm[1];
+        return motor_values;
     }
-    int16_t get_current_rpm(bool is_right) {
-        return current_rpm[is_right];
-    }
-    uint16_t get_last_angle(bool is_right){
-        return last_angle[is_right];
-    }
-// END TODO

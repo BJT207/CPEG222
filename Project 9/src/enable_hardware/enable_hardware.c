@@ -63,7 +63,7 @@ void Enable_Hardware() {
             // ENABLE_SHIELD_LEDS();
             // serial_printf("Enabled Hat LEDs\n", 18);
         // Systic Timer
-            ENABLE_SYS_TICK(180000U, 3);
+            ENABLE_SYS_TICK(180000U, 1);
             #if DebugMode
                 serial_printf("Enabled Systick\n");
             #endif
