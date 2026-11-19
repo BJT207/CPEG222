@@ -19,21 +19,18 @@
 
 // Vars
     // User Setting Vars
-        volatile int16_t target_rpm[2] = {0};
+        volatile int16_t target_rpm[2] = {0,0};
     // Measured Angle
-        volatile bool has_rise[2] = {false};
-        volatile uint16_t current_angle[2] = {0};
-        volatile uint16_t last_angle[2] = {0};
+        volatile bool has_rise[2] = {false,false};
+        volatile uint16_t current_angle[2] = {0,0};
+        volatile uint16_t last_angle[2] = {0,0};
     // Angle Calculation
-        volatile uint16_t prior_rising_edge[2] = {0};
-        volatile uint16_t cycle_duration[2] = {0};
+        volatile uint16_t prior_rising_edge[2] = {0,0};
+        volatile uint16_t cycle_duration[2] = {0,0};
     // RPM Calculation
-        volatile int16_t current_rpm[2] = {0};
+        volatile int16_t current_rpm[2] = {0,0};
     // PWM 
-        volatile uint16_t current_pwm[2] = {0};
-
-    
-    
+        volatile uint16_t current_pwm[2] = {0,0};
     
 // Headers
     void motor_pwm_calcs(bool is_right);
@@ -102,15 +99,16 @@
 
         if (target_rpm[is_right] == 0) { return;}
         
-        int16_t adjusted_pwm = current_pwm[is_right];
-            if ((int)(target_rpm[is_right]) > (int)(current_rpm[is_right])) {
-                adjusted_pwm += 2;
+        int16_t adjusted_pwm = (int16_t)current_pwm[is_right];
+        int16_t pwm_adjustment = (current_rpm[is_right] - target_rpm[is_right]);
+            if (pwm_adjustment < -MAX_ADJUSTMENT){
+                pwm_adjustment = -MAX_ADJUSTMENT;
             }
-            else {
-                adjusted_pwm -= 2;
-            }
-
-        if (target_rpm[is_right] > 0) {
+            if (pwm_adjustment > MAX_ADJUSTMENT) {
+                pwm_adjustment = MAX_ADJUSTMENT;
+        }
+        adjusted_pwm += pwm_adjustment;
+        if (target_rpm[is_right] < 0) {            
             if (adjusted_pwm > 1720) {
                 current_pwm[is_right] = 1720;
             }

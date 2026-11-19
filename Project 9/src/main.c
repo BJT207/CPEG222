@@ -167,8 +167,8 @@ void SysTick_Handler(void) {
 void update_displays() {
     OLED_Print(0,0,"CPEG222 F26 Project 9");
     OLED_Print(1,0,"Brandon Trainor");
-    OLED_Print(2,0, "L Angle %d", *(motor_values->left_angle));
-    OLED_Print(3,0, "R Angle %d", *(motor_values->right_angle));
+    OLED_Print(2,0, "L RPM %d PWM %d", *(motor_values->current_rpm_left), *(motor_values->current_pwm_left));
+    OLED_Print(3,0, "R RPM %d PWM %d", *(motor_values->current_rpm_right), *(motor_values->current_pwm_right));
 }
 
 
@@ -192,6 +192,8 @@ int main() {
                 ssd_value = 0;
                 set_target_rpm(0, 0);
             }
+            motor_speed_sync(tickcount);
+            tickcount = 0;
             update_displays();
             update_flag = false;
             // serial_printf("Left Angle %d\n", *(motor_values->left_angle));
@@ -201,4 +203,7 @@ int main() {
     }
         
 }
+
+
+
     

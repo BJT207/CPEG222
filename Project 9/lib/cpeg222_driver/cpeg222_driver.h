@@ -94,9 +94,9 @@
             #define PWM2_GPIO           GPIOD
             #define PWM3_GPIO           GPIOD
             #define PWM4_GPIO           GPIOD
-            #define FB_1                9
+            #define FB_1                13
             #define FB_2                11
-            #define FB_3                13
+            #define FB_3                9
             #define FB_4                14
             #define FB_1_GPIO           GPIOE
             #define FB_2_GPIO           GPIOE

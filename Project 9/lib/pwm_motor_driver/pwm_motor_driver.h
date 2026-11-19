@@ -35,8 +35,8 @@
         #define Right_Servo_GPIO        PWM3_GPIO
         #define Left_Feed_Back_Pin      FB_1
         #define Right_Feed_Back_Pin     FB_3
-        #define Left_Feed_Back_GPIO     FB_1_GPIO
-        #define Right_Feed_Back_GPIO    FB_3_GPIO
+        #define Left_Feed_Back_GPIO     FB_3_GPIO
+        #define Right_Feed_Back_GPIO    FB_1_GPIO
     // Servo Settings
         #define IDLE_PULSE_US   1500    // stop pulse (inside the 1480 to 1520 us dead band)
 
@@ -54,7 +54,7 @@
     // inline funcitons
     static inline void ENABLE_MOTORS() {
         // Enable Pin and Timer Clocks
-            RCC->AHB1ENR |= RCC_AHB1ENR_GPIODEN | RCC_AHB1ENR_GPIOEEN;
+            RCC->AHB1ENR |= RCC_AHB1ENR_GPIODEN;
             RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;
         // Settup PWM for the Motor Pins
             Left_Servo_GPIO->MODER &= ~(0b11 << (Left_Servo_Pin*2)); // clear the pin modes just in case
@@ -125,9 +125,6 @@
             TIM1->CCER |= TIM_CCER_CC1E | TIM_CCER_CC3E;                // enable capture
             // 5. interrupt on every captured edge
             TIM1->DIER |= TIM_DIER_CC1IE | TIM_DIER_CC3IE;
-            // Configure CH1 and CH3 input filter (bits 4:7 in CCMR1 and CCMR2)
-            TIM1->CCMR1 |= (0x3 << 4); // IC1F = 0011 (filter of 8 events)
-            TIM1->CCMR2 |= (0x3 << 4); // IC3F = 0011 (filter of 8 events)
             NVIC_SetPriority(TIM1_CC_IRQn, 1);
             NVIC_EnableIRQ(TIM1_CC_IRQn);
             // 6. go
