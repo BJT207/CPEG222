@@ -25,23 +25,20 @@
     volatile int16_t target_rpm[2] = {0};
     volatile int16_t current_rpm[2] = {0};
 
-    volatile uint16_t last_rising_edge[2] = {0};
+    volatile uint16_t prior_rising_edge[2] = {0};
     volatile uint16_t last_falling_edge[2] = {0};
     
 // Headers
     void motor_pwm_calcs(bool is_right);
     void set_motor_speed(bool motor_index, int set_rpm);
     void update_individual_rpm_measurements(bool is_right);
-    void update_angle_measurements(bool is_right);
     int16_t calc_ang_delta(bool is_right);
 
 // Exposed Functions
     void update_rpm_measurements(uint delta_time_ms) {
         int16_t delta_angle[2] = {calc_ang_delta(0), calc_ang_delta(1)};
-        // serial_printf("Angle Delta L %d\n", delta_angle[0]);
-        // serial_printf("Angle Delta R %d \n", delta_angle[1]);
-        current_rpm[0] = ((double)(delta_angle[0] * (60000)) / (3600.0f * delta_time_ms));
-        current_rpm[1] = ((double)(delta_angle[1] * (60000)) / (3600.0f * delta_time_ms));
+        current_rpm[0] = ((double)(delta_angle[0] * (60000)) / (3600.0f * 100));
+        current_rpm[1] = ((double)(delta_angle[1] * (60000)) / (3600.0f * 100));
         // serial_printf("RPM_READING %d\n",current_rpm[0]);
         // serial_printf("RPM_READING %d\n",current_rpm[1]);
     }
@@ -83,7 +80,8 @@
 
 // Internal Functions
     int16_t calc_ang_delta(bool is_right) {
-        int16_t delta_angle =  last_angle[is_right] - current_angle[is_right];
+
+        int16_t delta_angle =  current_angle[is_right] - last_angle[is_right];
         if (delta_angle > 1800) {
             delta_angle -= 3600; // Wrapped backwards across 0
         } else if (delta_angle < -1800) {
@@ -104,11 +102,6 @@
             else {
                 adjusted_pwm -= 2;
             }
-        serial_printf("\n");
-        serial_printf("TGT RPM: %d\n", target_rpm[is_right]);
-        serial_printf("CRT RPM: %d\n", current_rpm[is_right]);
-        serial_printf("CRT PWM: %d\n", current_pwm[is_right]);
-        serial_printf("Inc or Dec: %d\n", (int)(target_rpm[is_right]) > (int)(current_rpm[is_right]));
 
         if (target_rpm[is_right] > 0) {
             if (adjusted_pwm > 1720) {
@@ -168,23 +161,22 @@
             }
     }
 
-    void update_angle_measurements(bool is_right) {
-        bool is_rising = false;
-        if (is_right && (Right_Feed_Back_GPIO->IDR & (0b1 << Right_Feed_Back_Pin))){ 
-                is_rising = true;
-        }
-        else if (Left_Feed_Back_GPIO->IDR & (0b1 << Left_Feed_Back_Pin)){ 
-                is_rising = true;
-        }
+    void update_angle_measurements(bool is_right, bool is_rising, uint16_t edge_time) {
         if (is_rising) {
-            uint16_t rising_edge = (is_right ? TIM1->CCR1: TIM1->CCR3);       
-            uint16_t high_time = last_falling_edge[is_right] - last_rising_edge[is_right];
-            uint16_t cycle_time = rising_edge - last_rising_edge[is_right];
-            if (cycle_time > 1075) {
-                uint duty_cycle = high_time*1000 /cycle_time;
-                current_angle[is_right] = (duty_cycle-29) *3600 /942;            
+                   
+            uint16_t high_time = last_falling_edge[is_right] - prior_rising_edge[is_right];
+            uint16_t cycle_time = edge_time - prior_rising_edge[is_right];
+            if (cycle_time >= 1000 && cycle_time < 1200) {
+                uint duty_cycle = ((int32_t)high_time*1000) /cycle_time;
+                if (duty_cycle < DUTY_MIN) {
+                    duty_cycle = DUTY_MIN;
+                }
+                else if (duty_cycle > DUTY_MAX) {
+                    duty_cycle = DUTY_MAX;
+                }
+                current_angle[is_right] = (duty_cycle-DUTY_MIN) *3599 / (DUTY_MAX-DUTY_MIN);            
             }
-            last_rising_edge[is_right] = rising_edge;
+            prior_rising_edge[is_right] = edge_time;
         }
         else {
             last_falling_edge[is_right] = (is_right ? TIM1->CCR1: TIM1->CCR3);

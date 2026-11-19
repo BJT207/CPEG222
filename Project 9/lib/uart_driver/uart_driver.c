@@ -39,8 +39,8 @@ void serial_printf(char *string, ...) {
                 }
                 case 's': { // String
                     char *s = va_arg(args, char *);
-                    for (char *str_pntr = s; *s != '\0'; str_pntr++) {
-                        uart3_send_char(*s);
+                    for (char *str_pntr = s; *str_pntr != '\0'; str_pntr++) {
+                        uart3_send_char(*str_pntr);
                     }
                     break;
                 }

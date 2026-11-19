@@ -108,12 +108,10 @@ void EXTI9_5_IRQHandler(void) {
 
 void TIM1_CC_IRQHandler(void) {
     if (TIM1->SR & TIM_SR_CC1IF) {      // an edge (rising OR falling) was captured on CH1
-        update_angle_measurements(1);
-        TIM1->SR = ~TIM_SR_CC1IF;
+        update_angle_measurements(1, (bool)(Right_Feed_Back_GPIO->IDR & (0b1 << Right_Feed_Back_Pin)), TIM1->CCR1);
     }
     if (TIM1->SR & TIM_SR_CC3IF) {
-        update_angle_measurements(0);
-        TIM1->SR = ~TIM_SR_CC3IF;
+        update_angle_measurements(0, (bool)(Left_Feed_Back_GPIO->IDR & (0b1 << Left_Feed_Back_Pin)), TIM1->CCR3);
     }
 }
 

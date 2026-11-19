@@ -35,7 +35,7 @@
         #define RPM_WINDOW_MS   100     // time between angle readings
     // pwm_motor_driver.c funciton headers
         void set_target_rpm(int mode, int desired_rpm);
-        void update_angle_measurements(bool is_right);
+        void update_angle_measurements(bool is_right, bool is_rising, uint16_t edge_time);
         void update_rpm_measurements(uint delta_time_ms);
         void update_pwm();
         void motor_speed_sync(uint time_delta_ms);
@@ -117,7 +117,7 @@
             TIM1->CCER |= TIM_CCER_CC1E | TIM_CCER_CC3E;                // enable capture
             // 5. interrupt on every captured edge
             TIM1->DIER |= TIM_DIER_CC1IE | TIM_DIER_CC3IE;
-            NVIC_SetPriority(TIM1_CC_IRQn, 1);
+            NVIC_SetPriority(TIM1_CC_IRQn, 4);
             NVIC_EnableIRQ(TIM1_CC_IRQn);
             // 6. go
             TIM1->EGR = TIM_EGR_UG;
