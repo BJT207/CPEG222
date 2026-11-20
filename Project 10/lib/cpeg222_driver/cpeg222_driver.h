@@ -102,7 +102,18 @@
             #define FB_2_GPIO           GPIOE
             #define FB_3_GPIO           GPIOE
             #define FB_4_GPIO           GPIOE
-            
+        // Line Follower Pins
+            #define IR1             3
+            #define IR2             0
+            #define IR3             3
+            #define IR4             3
+            #define IR5             5
+            #define IR1_GPIO        GPIOA
+            #define IR2_GPIO        GPIOC
+            #define IR3_GPIO        GPIOC
+            #define IR4_GPIO        GPIOF
+            #define IR5_GPIO        GPIOF
+            #define IR_GPIOEN_MKS   (RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIOFEN)
     // Function Headers
         void delay_ms(uint32_t);
         void ssd_display_digit(uint8_t digit, uint8_t number, bool dec_pnt);

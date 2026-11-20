@@ -1,14 +1,14 @@
 /**********************************************************************
- * Name: Project 9
+ * Name: Project 10
  * Author: Brandon Trainor
  * Email: bjtrainor2007@gmail.com
- * Last Modified: 10/07/2026 (mm/dd/yyyy)
- * Creation Date: 10/06/2026 (mm/dd/yyyy)
+ * Last Modified: 11/19/2026 (mm/dd/yyyy)
+ * Creation Date: 11/19/2026 (mm/dd/yyyy)
  * Board: STM32 Nucleo F446ZE
  * Hardware Interface: CMSIS
  * Language: C
  * Description:
-    * Servo Movement Demo Project
+    * Line Follower Demo
 **********************************************************************/
 // C Header Files
 #include <stdbool.h>
@@ -22,6 +22,7 @@
 #include "oled_driver.h"
 #include "uart_driver.h"
 #include "pwm_motor_driver.h"
+#include "line_follower_driver.h"
 
 // Src Header Files
 #include "enable_hardware/enable_hardware.h"
@@ -33,12 +34,7 @@
 
 // Vars
     // Bools
-        volatile bool update_flag = false;
-        bool lights_toggle = true;
-        bool audio_toggle = true;
-        bool alarm_toggle = false; 
-        bool flashflip = false;
-        
+        volatile bool update_flag = false;        
     // Ints
         volatile unsigned int mode = 0;
         volatile bool mode_flag = true;
@@ -51,7 +47,6 @@
         };
     // uints
         volatile uint16_t ssd_value;
-                 uint8_t  displayed_neopixel_color=4;
     // floats 
     
     // Structs
@@ -61,98 +56,29 @@
 
 void EXTI9_5_IRQHandler(void) {
     if(EXTI->PR & (1 << BTN_CENTER_H)) {
-        if (mode_flag) {
-            mode = 0;
-            mode_flag = false;
-        }
+        
         EXTI->PR |= (1 << BTN_CENTER_H); // Clear Interupt bit
     }
     else if(EXTI->PR & (1 << BTN_LEFT_H)) {
-        if (mode_flag){
-            if (mode == 0 || mode == 3) {
-                mode = 3;
-            }
-            else {
-                mode = 0;
-            }
-            mode_flag = false;
-        }
+        
         EXTI->PR |= (1 << BTN_LEFT_H); // Clear Interupt bit
     }
     else if(EXTI->PR & (1 << BTN_RIGHT_H)) {
-        if (mode_flag) {
-            if (mode == 0 || mode == 4) {
-                mode = 4;
-            }
-            else {
-                mode = 0;
-            }
-            mode_flag = false;
-        }
+        
         EXTI->PR |= (1 << BTN_RIGHT_H); // Clear Interupt bit
     }
     else if(EXTI->PR & (1 << BTN_UP_H)) {
-        if (mode_flag) {
-            if (mode == 0 || mode == 1) {
-                mode = 1;
-            }
-            else {
-                mode = 0;
-            }
-            mode_flag = false;
-        }
+        
         EXTI->PR |= (1 << BTN_UP_H); // Clear Interupt bit
     }
     else if(EXTI->PR & (1 << BTN_DOWN_H)) {
-        if (mode_flag) {
-            if (mode == 0 || mode == 2) {
-                mode = 2;
-            }
-            else {
-                mode = 0;
-            }
-            mode_flag = false;
-        }
+        
         EXTI->PR |= (1 << BTN_DOWN_H); // Clear Interupt bit
     }   
 }
 
 void TIM1_CC_IRQHandler(void) {
-    bool right = false;
-    uint32_t right_time;
-    bool edge_right;
-    bool skipped_right = false;
-    bool left = false;
-    uint32_t left_time;
-    bool edge_left;
-    bool skipped_left = false;
-    // Captured all the data first to ensure nothing changes before another edge
-    if (TIM1->SR & TIM_SR_CC1OF ) {
-        TIM1->SR &= ~TIM_SR_CC1OF;
-        skipped_right = true;
-    }
-    if (TIM1->SR & TIM_SR_CC3OF ) {
-        TIM1->SR &= ~TIM_SR_CC3OF;
-        skipped_left = true;
-    }
-    if (TIM1->SR & TIM_SR_CC1IF) {      // an edge (rising OR falling) was captured on CH1
-        right = true;
-        right_time = TIM1->CCR1;
-        edge_right = (bool)(Right_Feed_Back_GPIO->IDR & (0b1 << Right_Feed_Back_Pin));
-    }
-    if (TIM1->SR & TIM_SR_CC3IF) {
-        left = true;
-        left_time = TIM1->CCR3;
-        edge_left = (bool)(Left_Feed_Back_GPIO->IDR & (0b1 << Left_Feed_Back_Pin));
-    }
-    // Update all the necesarry Values
-    if (right == true) {
-        update_angle_measurements(1, edge_right, right_time, skipped_right);
-    }
-    if (left == true) {
-        update_angle_measurements(0, edge_left, left_time, skipped_left);
-
-    }
+    Motor_Interupt_Controller(); // takes care of the angle calculations for the motors
 }
 
 void TIM5_IRQHandler(void){
@@ -164,14 +90,15 @@ void TIM5_IRQHandler(void){
 }
 
 void SysTick_Handler(void) {
-    if (time_count >= 100 && !update_flag) {
+    if (time_count >= 100 && !update_flag) { //triggers an update every 100 ms in main
         update_flag = true;
         time_count = 0;
     }
     else if (!update_flag) {
         time_count++;
     };
-    tickcount++;
+
+    tickcount++; // used for rpm measurements
 }
 
 // Functions
@@ -180,17 +107,15 @@ void update_displays() {
     OLED_Print(0,0,"CPEG222 F26 Project 9");
     OLED_Print(1,0,"Brandon Trainor");
     OLED_Print(2,0, "11/12 Fall 2026");
-    OLED_Print(3,0, "Mode: %s", mode_text[mode]);
     OLED_Print(4,0, "L RPM: %d PWM:%d", *(motor_values->current_rpm_left), *(motor_values->current_pwm_left));
-    OLED_Print(5,0, "R RPM: %d PWM:%d", *(motor_values->current_rpm_right), *(motor_values->current_pwm_right));
 }
-
-
 
 int main() {
 
     Enable_Hardware();
+
     motor_values = get_motor_ponters();
+
     while(1) {
         uint32_t pot_val = 0;
         read_Hat_POT(&pot_val);

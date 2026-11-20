@@ -2,7 +2,7 @@
  * Name: PWM Motor Driver Header
  * Author: Brandon Trainor
  * Email: bjtrainor2007@gmail.com
- * Last Modified: 11/17/2026 (mm/dd/yyyy)
+ * Last Modified: 11/19/2026 (mm/dd/yyyy)
  * Creation Date: 11/12/2026 (mm/dd/yyyy)
  * Board: STM32 Nucleo F446ZE
  * Hardware Interface: CMSIS
@@ -132,4 +132,43 @@
             TIM1->SR = 0;                               // clear flags from setup
             TIM1->CR1 |= TIM_CR1_CEN;
     }
+
+    static inline void Motor_Interupt_Controller() {
+        bool right = false;
+        uint32_t right_time;
+        bool edge_right;
+        bool skipped_right = false;
+        bool left = false;
+        uint32_t left_time;
+        bool edge_left;
+        bool skipped_left = false;
+        // Captured all the data first to ensure nothing changes before another edge
+        if (TIM1->SR & TIM_SR_CC1OF ) {
+            TIM1->SR &= ~TIM_SR_CC1OF;
+            skipped_right = true;
+        }
+        if (TIM1->SR & TIM_SR_CC3OF ) {
+            TIM1->SR &= ~TIM_SR_CC3OF;
+            skipped_left = true;
+        }
+        if (TIM1->SR & TIM_SR_CC1IF) {      // an edge (rising OR falling) was captured on CH1
+            right = true;
+            right_time = TIM1->CCR1;
+            edge_right = (bool)(Right_Feed_Back_GPIO->IDR & (0b1 << Right_Feed_Back_Pin));
+        }
+        if (TIM1->SR & TIM_SR_CC3IF) {
+            left = true;
+            left_time = TIM1->CCR3;
+            edge_left = (bool)(Left_Feed_Back_GPIO->IDR & (0b1 << Left_Feed_Back_Pin));
+        }
+        // Update all the necesarry Values
+        if (right == true) {
+            update_angle_measurements(1, edge_right, right_time, skipped_right);
+        }
+        if (left == true) {
+            update_angle_measurements(0, edge_left, left_time, skipped_left);
+
+        }
+    }
+
 #endif

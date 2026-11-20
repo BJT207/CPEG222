@@ -2,7 +2,7 @@
  * Name: Enable Hardware
  * Author: Brandon Trainor
  * Email: bjtrainor2007@gmail.com
- * Last Modified: 11/12/2026 (mm/dd/yyyy)
+ * Last Modified: 11/20/2026 (mm/dd/yyyy)
  * Creation Date: 11/12/2026 (mm/dd/yyyy)
  * Board: STM32 Nucleo F446ZE
  * Hardware Interface: CMSIS
@@ -22,6 +22,7 @@
     #include "oled_driver.h"
     #include "pwm_motor_driver.h"
     #include "enable_hardware.h"
+    #include "line_follower_driver.h"
     #define UART_DEBUG_EN DEBUG_MODE && UART
 
 void Enable_Hardware() {
@@ -116,13 +117,17 @@ void Enable_Hardware() {
                 #endif
             #endif
         #endif
-        // Other
+        // Sensors
             #if POTENTIOMITER
                 ENABLE_POT_INPUT();
                #if UART_DEBUG_EN
                 serial_printf("Enabled the Potentiomiter\n", 27);
                #endif
             #endif
+        // IR Sensors
+            #if IR_SENSOR
+                ENABLE_IR_SENSOR();
+            #endif 
         // Motors
             #if MOTORS
                 ENABLE_MOTORS();

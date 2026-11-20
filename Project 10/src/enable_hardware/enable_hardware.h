@@ -2,7 +2,7 @@
  * Name: Enable Hardware
  * Author: Brandon Trainor
  * Email: bjtrainor2007@gmail.com
- * Last Modified: 11/12/2026 (mm/dd/yyyy)
+ * Last Modified: 11/20/2026 (mm/dd/yyyy)
  * Creation Date: 11/12/2026 (mm/dd/yyyy)
  * Board: STM32 Nucleo F446ZE
  * Hardware Interface: CMSIS
@@ -38,6 +38,7 @@
     #define I2C                         Disabled
         #define BME280                      Disabled
     #define POTENTIOMITER               Disabled
+    #define IR_SENSOR                   Enabled
     #define MOTORS                      Enabled    
 
 #endif
