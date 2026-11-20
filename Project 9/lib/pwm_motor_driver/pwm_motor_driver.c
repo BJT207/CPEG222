@@ -53,25 +53,33 @@
             set_motor_speed(0, 0); // Left Motor
             set_motor_speed(1, 0); // Right Motor
         }   
-        else if (mode == 1) {
-            set_motor_speed(0, desired_rpm); // Left Motor
-            set_motor_speed(1, -desired_rpm); // Right Motor
-        }
-        else if (mode == 2) {
+        else if (mode == 1) { // Forward
             set_motor_speed(0, -desired_rpm); // Left Motor
             set_motor_speed(1, desired_rpm); // Right Motor
         }
-        else if (mode == 3) {
+        else if (mode == 2) { // Backwards
+            set_motor_speed(0, desired_rpm); // Left Motor
+            set_motor_speed(1, -desired_rpm); // Right Motor
+        }
+        else if (mode == 3) { // Left
+            set_motor_speed(0, desired_rpm); // Left Motor
+            set_motor_speed(1, 0); // Right Motor
+        }
+        else if (mode == 4) { // Right
+            set_motor_speed(0, 0); // Left Motor
+            set_motor_speed(1, -desired_rpm); // Right Motor
+        }
+        else if (mode == 5) { // Tank Turn Left
             set_motor_speed(0, desired_rpm); // Left Motor
             set_motor_speed(1, desired_rpm); // Right Motor
         }
-        else if (mode == 4) {
+        else if (mode == 6) { // Tank Turn Right
             set_motor_speed(0, -desired_rpm); // Left Motor
             set_motor_speed(1, -desired_rpm); // Right Motor
         }
     }
 
-    void update_pwm( ) {
+    void update_pwm() {
         motor_pwm_calcs(0); // left
         motor_pwm_calcs(1); // right
     }
